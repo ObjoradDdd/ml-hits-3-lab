@@ -1,15 +1,10 @@
 const source = document.querySelector("#source");
 const target = document.querySelector("#target");
-const loader = document.querySelector("#loader");
+const port = 8080;
 
 let debounceTimer = null;
 let activeSocket = null;
 let hasStreamingStarted = false;
-
-const setLoading = (isLoading) => {
-  loader.hidden = !isLoading;
-  target.setAttribute("aria-busy", String(isLoading));
-};
 
 const resetOutput = () => {
   target.textContent = "";
@@ -29,14 +24,13 @@ const appendToken = (text) => {
   }
   if (!hasStreamingStarted) {
     hasStreamingStarted = true;
-    setLoading(false);
   }
   target.textContent += text;
 };
 
 const buildSocketUrl = () => {
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  return `${protocol}://${window.location.host}/translate`;
+  return `${protocol}://localhost:${port}/translate`;
 };
 
 const sendTranslation = (text) => {
@@ -44,11 +38,8 @@ const sendTranslation = (text) => {
   resetOutput();
 
   if (!text.trim()) {
-    setLoading(false);
     return;
   }
-
-  setLoading(true);
 
   const socket = new WebSocket(buildSocketUrl());
   activeSocket = socket;
@@ -65,14 +56,12 @@ const sendTranslation = (text) => {
     if (activeSocket === socket) {
       activeSocket = null;
     }
-    setLoading(false);
   });
 
   socket.addEventListener("error", () => {
     if (activeSocket === socket) {
       activeSocket = null;
     }
-    setLoading(false);
     appendToken("Ошибка соединения.");
   });
 };
@@ -84,7 +73,6 @@ source.addEventListener("input", (event) => {
     clearTimeout(debounceTimer);
     abortActiveRequest();
     resetOutput();
-    setLoading(false);
     return;
   }
 
