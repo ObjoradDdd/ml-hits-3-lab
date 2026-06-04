@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Akkadian → English Translator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero__text">
+          <p class="eyebrow">Streaming Translator Lab</p>
+          <h1>Akkadian → English</h1>
+          <p class="subhead">
+            Введите транслитерацию аккадского текста и наблюдайте перевод в
+            реальном времени.
+          </p>
+        </div>
+      </header>
+
+      <main class="panels">
+        <section class="panel panel--input">
+          <div class="panel__header">
+            <h2>Исходный текст</h2>
+            <p>Транслитерация</p>
+          </div>
+          <textarea
+            id="source"
+            placeholder="Введите транслитерацию аккадского текста (например: šarrum ana ālim illik)..."
+            spellcheck="false"
+          ></textarea>
+        </section>
+
+        <section class="panel panel--output">
+          <div class="panel__header">
+            <h2>Перевод</h2>
+            <p>English</p>
+          </div>
+          <div
+            id="target"
+            class="output"
+            data-placeholder="Здесь появится перевод..."
+            aria-live="polite"
+            aria-busy="false"
+          ></div>
+        </section>
+      </main>
+
+      
+      <footer class="footer">
+        <span>Лабораторная работа • стриминговый переводчик</span>
+      </footer>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
