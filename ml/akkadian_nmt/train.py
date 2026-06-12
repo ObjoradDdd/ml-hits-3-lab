@@ -35,6 +35,7 @@ class TrainConfig:
     learning_rate: float = 1e-3  # Adafactor + constant-ish schedule, standard for T5
     num_epochs: float = 10.0
     per_device_batch: int = 2
+    eval_batch: int = 8  # generation needs less memory than training
     grad_accum: int = 32  # effective batch 64
     warmup_steps: int = 100
     seed: int = 13
@@ -158,7 +159,7 @@ def train(config: str | TrainConfig, **overrides) -> str:
         lr_scheduler_type="constant_with_warmup",
         warmup_steps=cfg.warmup_steps,
         per_device_train_batch_size=cfg.per_device_batch,
-        per_device_eval_batch_size=cfg.per_device_batch,
+        per_device_eval_batch_size=cfg.eval_batch,
         gradient_accumulation_steps=cfg.grad_accum,
         gradient_checkpointing=cfg.gradient_checkpointing,
         bf16=cfg.bf16,
