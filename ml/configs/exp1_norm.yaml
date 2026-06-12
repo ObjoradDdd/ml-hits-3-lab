@@ -1,0 +1,10 @@
+# Experiment 1 — orthography normalization + test-style corruption augmentation.
+# Same data as baseline (docs only) so the delta is attributable to normalization.
+model_name: google/byt5-base
+train_source: both          # each pair seen as clean and as test-style source
+eval_source: src_test_style # dev proxy for the corrupted Kaggle test
+origin_filter: [doc]
+num_epochs: 8
+output_dir: model/byt5-norm
+run_name: byt5-norm-docs
+push_to_hub: false

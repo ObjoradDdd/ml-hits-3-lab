@@ -1,0 +1,11 @@
+# Milestone 2 baseline: ByT5-base on train.csv documents only,
+# raw orthography (no normalization, no corruption), greedy decoding at eval.
+model_name: google/byt5-base
+train_source: src_raw
+eval_source: src_raw
+origin_filter: [doc]
+num_epochs: 10
+output_dir: model/byt5-baseline
+run_name: byt5-baseline-docs-raw
+hub_model_id: null
+push_to_hub: false

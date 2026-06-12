@@ -1,0 +1,10 @@
+# Ensemble member B: identical recipe to exp2, different seed.
+model_name: google/byt5-base
+train_source: both
+eval_source: src_test_style
+origin_filter: null
+num_epochs: 8
+seed: 42
+output_dir: model/byt5-full-s42
+run_name: byt5-full-seed42
+push_to_hub: false
