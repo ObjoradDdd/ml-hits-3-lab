@@ -1,2 +1,18 @@
 *.code-workspace
 .vscode/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+*.egg-info/
+.ipynb_checkpoints/
+
+# data, weights, logs — never committed (HF Hub / W&B artifacts instead)
+ml/data/
+ml/model/
+model/
+wandb/
+*.log
