@@ -89,8 +89,13 @@ def _load_split(path: str, source: str, target_field: str,
     return ds.select_columns(["src", "tgt"])
 
 
-def train(config: str | TrainConfig) -> str:
-    """Run fine-tuning; returns the output directory with the final model."""
+def train(config: str | TrainConfig, **overrides) -> str:
+    """Run fine-tuning; returns the output directory with the final model.
+
+    ``overrides`` lets the CLI tweak any config field without editing the yaml:
+        python -m akkadian_nmt.train --config=configs/baseline.yaml \
+            --push_to_hub=True --hub_model_id=user/byt5-akkadian-baseline
+    """
     import numpy as np
     import sacrebleu
     import transformers
@@ -104,6 +109,10 @@ def train(config: str | TrainConfig) -> str:
     )
 
     cfg = TrainConfig.from_yaml(config) if isinstance(config, str) else config
+    for key, value in overrides.items():
+        if key not in cfg.__dataclass_fields__:
+            raise ValueError(f"unknown config override: {key}")
+        setattr(cfg, key, value)
     log.info("train config: %s", cfg)
     transformers.set_seed(cfg.seed)
     os.environ.setdefault("WANDB_PROJECT", cfg.wandb_project)
@@ -168,6 +177,7 @@ def train(config: str | TrainConfig) -> str:
         push_to_hub=cfg.push_to_hub,
         hub_model_id=cfg.hub_model_id,
         hub_strategy="checkpoint",  # resumable from the Hub after disconnect
+        hub_private_repo=True,
     )
 
     trainer = Seq2SeqTrainer(
@@ -186,8 +196,22 @@ def train(config: str | TrainConfig) -> str:
         from transformers.trainer_utils import get_last_checkpoint
 
         last_ckpt = get_last_checkpoint(cfg.output_dir)
-        if last_ckpt:
-            log.info("resuming from checkpoint %s", last_ckpt)
+    if cfg.resume and last_ckpt is None and cfg.push_to_hub and cfg.hub_model_id:
+        # fresh VM after a Colab disconnect: pull the checkpoint pushed to the Hub
+        # by hub_strategy="checkpoint" (stored under last-checkpoint/ in the repo)
+        try:
+            from huggingface_hub import snapshot_download
+
+            snapshot_download(repo_id=cfg.hub_model_id,
+                              allow_patterns=["last-checkpoint/*"],
+                              local_dir=cfg.output_dir)
+            candidate = Path(cfg.output_dir) / "last-checkpoint"
+            if (candidate / "trainer_state.json").exists():
+                last_ckpt = str(candidate)
+        except Exception as err:  # repo may not exist yet on the first run
+            log.info("no resumable checkpoint on the Hub (%s)", err)
+    if last_ckpt:
+        log.info("resuming from checkpoint %s", last_ckpt)
 
     try:
         trainer.train(resume_from_checkpoint=last_ckpt)
