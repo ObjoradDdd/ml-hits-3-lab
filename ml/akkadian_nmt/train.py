@@ -90,6 +90,36 @@ def _load_split(path: str, source: str, target_field: str,
     return ds.select_columns(["src", "tgt"])
 
 
+def _checkpoint_compatible(ckpt: str, current_version: str) -> bool:
+    """True if the checkpoint's optimizer state can be resumed under the
+    running transformers version (the version that saved config.json)."""
+    import json
+
+    try:
+        with open(Path(ckpt) / "config.json", encoding="utf-8") as fh:
+            saved = json.load(fh).get("transformers_version")
+        return saved is None or saved == current_version
+    except Exception:
+        return False
+
+
+def _load_weights(model, ckpt: str) -> None:
+    """Load model weights from a checkpoint into an existing model, ignoring
+    optimizer/scheduler state. Tolerates tied-embedding keys via strict=False."""
+    import torch
+
+    safetensors_path = Path(ckpt) / "model.safetensors"
+    if safetensors_path.exists():
+        from safetensors.torch import load_file
+
+        state = load_file(str(safetensors_path))
+    else:
+        state = torch.load(Path(ckpt) / "pytorch_model.bin", map_location="cpu")
+    missing, unexpected = model.load_state_dict(state, strict=False)
+    log.info("loaded checkpoint weights (missing=%d, unexpected=%d)",
+             len(missing), len(unexpected))
+
+
 def train(config: str | TrainConfig, **overrides) -> str:
     """Run fine-tuning; returns the output directory with the final model.
 
@@ -211,7 +241,17 @@ def train(config: str | TrainConfig, **overrides) -> str:
                 last_ckpt = str(candidate)
         except Exception as err:  # repo may not exist yet on the first run
             log.info("no resumable checkpoint on the Hub (%s)", err)
-    if last_ckpt:
+
+    # The optimizer state layout differs across transformers versions, so a
+    # checkpoint saved under one version cannot resume its optimizer under
+    # another (ValueError: parameter group ... doesn't match). When the
+    # versions differ, keep the learned weights but restart the optimizer.
+    if last_ckpt and not _checkpoint_compatible(last_ckpt, transformers.__version__):
+        log.warning("checkpoint %s trained with a different transformers version; "
+                    "resuming from weights only (fresh optimizer/scheduler)", last_ckpt)
+        _load_weights(model, last_ckpt)
+        last_ckpt = None
+    elif last_ckpt:
         log.info("resuming from checkpoint %s", last_ckpt)
 
     try:

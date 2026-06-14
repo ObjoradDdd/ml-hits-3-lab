@@ -7,7 +7,10 @@ readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "torch (>=2.4)",
-    "transformers (>=4.46)",
+    # pinned exactly: checkpoint optimizer state is not portable across
+    # transformers versions (see train.py resume logic). Keep Colab and
+    # Kaggle on the same version so resume works without a weights-only restart.
+    "transformers (==5.10.1)",
     "datasets (>=3.0)",
     "accelerate (>=1.0)",
     "sacrebleu (>=2.4)",
@@ -18,8 +21,10 @@ dependencies = [
     "huggingface-hub (>=0.26)",
 ]
 
-[project.optional-dependencies]
-eval = ["unbabel-comet (>=2.2)"]
+# NOTE: COMET (unbabel-comet) pins transformers<5.0, incompatible with the
+# 5.10.1 we train/serve with. It is auxiliary (not trained on Akkadian) and is
+# installed ad-hoc in a separate step right before scoring — see the eval cell
+# in notebooks/*_train.ipynb. Do not add it here or version solving will fail.
 
 [tool.poetry]
 packages = [{ include = "akkadian_nmt" }]
