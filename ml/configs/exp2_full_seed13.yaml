@@ -4,7 +4,7 @@ model_name: google/byt5-base
 train_source: both
 eval_source: src_test_style
 origin_filter: null
-num_epochs: 8
+num_epochs: 5  # full corpus (~7.4k augmented pairs) -> fewer epochs fit in a 12h Kaggle session
 seed: 13
 output_dir: model/byt5-full-s13
 run_name: byt5-full-seed13
