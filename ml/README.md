@@ -85,12 +85,19 @@ poetry run python -m akkadian_nmt.evaluate run \
   --num_beams=4 --candidates_per_model=4
 ```
 
-### Перевод и сабмит
+### Перевод (локально)
 ```bash
 poetry run python model.py predict --text="um-ma kà-ru-um kà-ni-iš-ma" # стримит токены
 poetry run python model.py predict-file --dataset=./data/test.csv      # -> ./data/results.csv
-kaggle competitions submit -c deep-past-initiative-machine-translation -f data/results.csv -m "..."
 ```
+
+### Сабмит на Kaggle (это **code competition**)
+Сабмитится не файл, а ноутбук: Kaggle приватно перезапускает выбранную версию,
+подставляя скрытый тест, и забирает из Output файл **`submission.csv`**.
+Используется `notebooks/kaggle_submit.ipynb` (только инференс, грузит модель с HF Hub):
+1. Открыть его в Kaggle, Add Input → соревнование, Internet On, Secret `HF_TOKEN`.
+2. Выставить `RUN_NAME` (какую модель брать) и `NORMALIZE` (False для baseline, True для exp1+).
+3. Save & Run All → дождаться `submission.csv` в Output → **Submit**.
 
 ## Конфигурация декодирования (финальная)
 
