@@ -267,6 +267,16 @@ def train(config: str | TrainConfig, **overrides) -> str:
         trainer.push_to_hub()
     metrics = trainer.evaluate()
     log.info("final dev metrics: %s", metrics)
+
+    # close the W&B run explicitly; otherwise its background sync can keep the
+    # process alive at interpreter exit (the run is done, but the cell hangs).
+    try:
+        import wandb
+
+        if wandb.run is not None:
+            wandb.finish()
+    except Exception:
+        pass
     return final_dir
 
 
