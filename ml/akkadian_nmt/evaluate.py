@@ -90,7 +90,28 @@ def beam_sweep(model_dirs: str | list[str], dev_file: str = "data/processed/dev.
     return results
 
 
+def comet_score_file(pred_file: str, batch_size: int = 16) -> dict:
+    """Score COMET from a predictions JSON written by ``run`` (--out_file).
+
+    Decoupled from model loading on purpose: unbabel-comet pins transformers<5,
+    which cannot load our 5.x-saved ByT5 tokenizer. Run this AFTER installing
+    comet — it only needs (src, mt, ref) triples, not our model. See the eval
+    cells in notebooks/*_train.ipynb."""
+    from comet import download_model, load_from_checkpoint
+
+    with open(pred_file, encoding="utf-8") as fh:
+        preds = json.load(fh)["predictions"]
+    triples = [{"src": p["src"], "mt": p["hyp"], "ref": p["ref"]} for p in preds]
+    model = load_from_checkpoint(download_model("Unbabel/wmt22-comet-da"))
+    score = model.predict(triples, batch_size=batch_size).system_score
+    out = {"comet": round(score, 4), "n": len(triples), "pred_file": pred_file}
+    log.info("COMET: %s", out)
+    print(json.dumps(out, indent=2))
+    return out
+
+
 if __name__ == "__main__":
     import fire
 
-    fire.Fire({"run": run, "beam_sweep": beam_sweep, "score": score})
+    fire.Fire({"run": run, "beam_sweep": beam_sweep, "score": score,
+               "comet_score_file": comet_score_file})

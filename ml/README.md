@@ -23,13 +23,19 @@ gradient checkpointing, Adafactor, возобновление с чекпоин�
 
 ## Results (ablation)
 
+dev-метрики считаются на **испорченном** dev (`src_test_style`) — это прокси под
+зашифрованный тест Kaggle (см. инсайт 1). Исключение — baseline, обученный на raw,
+его dev меряется на чистом источнике.
+
 | # | Техника | BLEU (dev) | chrF++ (dev) | geo-mean (dev) | Kaggle public LB | Примечания |
 |---|---------|-----------:|-------------:|---------------:|-----------------:|------------|
-| 0 | Baseline: ByT5-base, только train.csv (доки), raw орфография, greedy | — | — | — | — | `configs/baseline.yaml` |
-| 1 | + нормализация орфографии и test-style аугментация | — | — | — | — | `configs/exp1_norm.yaml` |
-| 2 | + sentence-chunk пары (≈+2.5k пар) | — | — | — | — | `configs/exp2_full_seed13.yaml` |
-| 3 | + beam search (sweep 1/4/8) | — | — | — | — | лучший beam = `<N>` |
-| 4 | + мини-ансамбль 2× seed (13, 42), MBR-chrF селектор | — | — | — | — | `configs/exp3_full_seed42.yaml` |
+| 0 | Baseline: ByT5-base, только train.csv (доки), raw орфография, greedy | 14.75 | 35.54 | 22.90 | **13.08** | dev на чистом источнике; `configs/baseline.yaml` |
+| 1 | + нормализация орфографии и test-style аугментация (greedy) | 17.20 | 37.07 | 25.25 | TBD | `configs/exp1_norm.yaml` |
+| 2 | exp1 + beam search (beam=4, лучший из 1/4/8) | 17.54 | 37.47 | **25.64** | TBD | beam=8 → 25.54 |
+| 3 | + sentence-chunk пары (≈+2.3k пар) | — | — | — | TBD | `configs/exp2_full_seed13.yaml` |
+| 4 | + мини-ансамбль 2× seed (13, 42), MBR-chrF селектор | — | — | — | TBD | `configs/exp3_full_seed42.yaml` |
+
+Beam sweep на exp1 (испорченный dev, 200 примеров): greedy geo 25.25 → **beam=4 geo 25.64** → beam=8 geo 25.54. Выбран beam=4.
 
 **Финальные метрики:** Kaggle public `—` / private `—` · dev: BLEU `—`, chrF++ `—`, COMET (`Unbabel/wmt22-comet-da`) `—`.
 
