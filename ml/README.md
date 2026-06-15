@@ -33,7 +33,7 @@ dev-метрики считаются на **испорченном** dev (`src_
 | 1 | + нормализация орфографии и test-style аугментация (docs, greedy) | 17.20 | 37.07 | 25.25 | — | `configs/exp1_norm.yaml` |
 | 2 | + sentence-chunk пары (полный корпус, seed13, greedy) | 17.66 | 37.71 | 25.81 | — | `configs/exp2_full_seed13.yaml` |
 | 3 | + beam search (seed13, beam=8) | 18.22 | 38.25 | **26.40** | TBD | лучший одиночный |
-| 4 | + мини-ансамбль seed13+seed42, MBR-chrF | TBD | TBD | TBD | TBD | `configs/exp3_full_seed42.yaml` |
+| 4 | + мини-ансамбль seed13+seed42, MBR-chrF (4+4 канд.) | **19.03** | **39.16** | **27.30** | TBD | лучший; COMET 0.6331 |
 
 Beam sweep (испорченный dev, 200 примеров):
 - exp1 (docs): greedy 25.25 → beam4 **25.64** → beam8 25.54
@@ -44,7 +44,12 @@ Beam sweep (испорченный dev, 200 примеров):
 (baseline LB 13.08 → exp1 dev geo 25.25), +chunk-данные (25.25 → 25.81 greedy),
 +beam search (25.81 → 26.40). Ансамбль seed13+seed42 — строка 4.
 
-**Финальные метрики:** Kaggle public `—` / private `—` · dev: BLEU `—`, chrF++ `—`, COMET (`Unbabel/wmt22-comet-da`) `—`.
+Ансамбль (MBR-chrF над пулом beam-кандидатов двух сидов) бьёт лучшую одиночную
+модель: geo 26.40 → **27.30**. Это финальная конфигурация для сабмита.
+
+**Финальные метрики (финальная модель — ансамбль seed13+seed42):**
+Kaggle public `—` / private `—` · dev (испорченный, n=200): BLEU **19.03**, chrF++ **39.16**,
+geo-mean **27.30**, COMET (`Unbabel/wmt22-comet-da`) **0.6331**.
 
 Скриншот лидерборда: `docs/leaderboard.png` *(добавить)*.
 
