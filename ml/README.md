@@ -29,13 +29,20 @@ dev-метрики считаются на **испорченном** dev (`src_
 
 | # | Техника | BLEU (dev) | chrF++ (dev) | geo-mean (dev) | Kaggle public LB | Примечания |
 |---|---------|-----------:|-------------:|---------------:|-----------------:|------------|
-| 0 | Baseline: ByT5-base, только train.csv (доки), raw орфография, greedy | 14.75 | 35.54 | 22.90 | **13.08** | dev на чистом источнике; `configs/baseline.yaml` |
-| 1 | + нормализация орфографии и test-style аугментация (greedy) | 17.20 | 37.07 | 25.25 | TBD | `configs/exp1_norm.yaml` |
-| 2 | exp1 + beam search (beam=4, лучший из 1/4/8) | 17.54 | 37.47 | **25.64** | TBD | beam=8 → 25.54 |
-| 3 | + sentence-chunk пары (≈+2.3k пар) | — | — | — | TBD | `configs/exp2_full_seed13.yaml` |
-| 4 | + мини-ансамбль 2× seed (13, 42), MBR-chrF селектор | — | — | — | TBD | `configs/exp3_full_seed42.yaml` |
+| 0 | Baseline: ByT5-base, train.csv (доки), raw орфография, greedy | 14.75 | 35.54 | 22.90 | **13.08** | dev на чистом источнике; `configs/baseline.yaml` |
+| 1 | + нормализация орфографии и test-style аугментация (docs, greedy) | 17.20 | 37.07 | 25.25 | — | `configs/exp1_norm.yaml` |
+| 2 | + sentence-chunk пары (полный корпус, seed13, greedy) | 17.66 | 37.71 | 25.81 | — | `configs/exp2_full_seed13.yaml` |
+| 3 | + beam search (seed13, beam=8) | 18.22 | 38.25 | **26.40** | TBD | лучший одиночный |
+| 4 | + мини-ансамбль seed13+seed42, MBR-chrF | TBD | TBD | TBD | TBD | `configs/exp3_full_seed42.yaml` |
 
-Beam sweep на exp1 (испорченный dev, 200 примеров): greedy geo 25.25 → **beam=4 geo 25.64** → beam=8 geo 25.54. Выбран beam=4.
+Beam sweep (испорченный dev, 200 примеров):
+- exp1 (docs): greedy 25.25 → beam4 **25.64** → beam8 25.54
+- exp2 (seed13, full): greedy 25.81 → beam4 26.19 → beam8 **26.40** (монотонно)
+- exp3 (seed42, full): greedy 25.28 → beam4 **25.47** → beam8 25.23
+
+Каждая обязательная техника даёт прирост на распределении теста: нормализация+шифр
+(baseline LB 13.08 → exp1 dev geo 25.25), +chunk-данные (25.25 → 25.81 greedy),
++beam search (25.81 → 26.40). Ансамбль seed13+seed42 — строка 4.
 
 **Финальные метрики:** Kaggle public `—` / private `—` · dev: BLEU `—`, chrF++ `—`, COMET (`Unbabel/wmt22-comet-da`) `—`.
 
