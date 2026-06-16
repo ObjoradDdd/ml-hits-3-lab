@@ -32,8 +32,8 @@ dev-метрики считаются на **испорченном** dev (`src_
 | 0 | Baseline: ByT5-base, train.csv (доки), raw орфография, greedy | 14.75 | 35.54 | 22.90 | **13.08** | dev на чистом источнике; `configs/baseline.yaml` |
 | 1 | + нормализация орфографии и test-style аугментация (docs, greedy) | 17.20 | 37.07 | 25.25 | — | `configs/exp1_norm.yaml` |
 | 2 | + sentence-chunk пары (полный корпус, seed13, greedy) | 17.66 | 37.71 | 25.81 | — | `configs/exp2_full_seed13.yaml` |
-| 3 | + beam search (seed13, beam=8) | 18.22 | 38.25 | **26.40** | TBD | лучший одиночный |
-| 4 | + мини-ансамбль seed13+seed42, MBR-chrF (4+4 канд.) | **19.03** | **39.16** | **27.30** | TBD | лучший; COMET 0.6331 |
+| 3 | + beam search (seed13, beam=8) | 18.22 | 38.25 | **26.40** | 21.55 / 23.05 | **сабмичен** (public/private) |
+| 4 | + мини-ансамбль seed13+seed42, MBR-chrF (4+4 канд.) | **19.03** | **39.16** | **27.30** | — | лучший на dev; не сабмичен — см. ниже |
 
 Beam sweep (испорченный dev, 200 примеров):
 - exp1 (docs): greedy 25.25 → beam4 **25.64** → beam8 25.54
@@ -45,11 +45,26 @@ Beam sweep (испорченный dev, 200 примеров):
 +beam search (25.81 → 26.40). Ансамбль seed13+seed42 — строка 4.
 
 Ансамбль (MBR-chrF над пулом beam-кандидатов двух сидов) бьёт лучшую одиночную
-модель: geo 26.40 → **27.30**. Это финальная конфигурация для сабмита.
+модель на dev: geo 26.40 → **27.30**. Однако это **code-competition без интернета**:
+скрытый тест велик, и прогон двух моделей × beam не укладывался в лимит времени
+перезапуска. Поэтому **сабмичена одиночная seed13** (beam), а ансамбль остаётся
+лучшей конфигурацией по dev/офлайн.
 
-**Финальные метрики (финальная модель — ансамбль seed13+seed42):**
-Kaggle public `—` / private `—` · dev (испорченный, n=200): BLEU **19.03**, chrF++ **39.16**,
-geo-mean **27.30**, COMET (`Unbabel/wmt22-comet-da`) **0.6331**.
+**Финальные метрики:**
+- **Сабмит (ByT5-base seed13, beam):** Kaggle public **21.55** / private **23.05**.
+- dev (испорченный, n=200): лучшая одиночная geo **26.40**; ансамбль BLEU **19.03**,
+  chrF++ **39.16**, geo **27.30**, COMET (`Unbabel/wmt22-comet-da`) **0.6331**.
+
+### Честный анализ (dev ↔ LB)
+
+dev-метрики (geo ~26–27) выше LB (~23), потому что dev мы портим **своим** 7-символьным
+шифром, выведенным из 4 видимых тестовых строк; реальная порча в скрытом тесте, видимо,
+разнообразнее, так что dev оптимистичен — LB здесь источник правды. Нормализация орфографии
+дала главный скачок (baseline LB **13.08** → сабмит **~23**), beam и ансамбль добавили
+сверху. Чтобы перейти порог 35.9, по опыту топ-решений нужен ByT5 **large/XL** и больше
+эпох (top-4 использовали именно их) — это упирается в бюджет бесплатного T4, поэтому
+зафиксировались на ByT5-base. Все обязательные техники ablation-отчёта при этом выполнены
+и измерены.
 
 Скриншот лидерборда: `docs/leaderboard.png` *(добавить)*.
 
@@ -80,10 +95,12 @@ poetry install                  # или: pip install -e .
 poetry run python -m akkadian_nmt.data_prep --data_dir=./data --out_dir=./data/processed
 ```
 
-### Обучение (Colab — рекомендуется, GPU)
-Открыть `notebooks/colab_train.ipynb` в Colab, выбрать конфиг (`CONFIG = "configs/..."`),
-добавить секреты `WANDB_API_KEY`, `KAGGLE_USERNAME/KEY`. Чекпоинты пишутся в Google Drive
-и переживают обрыв сессии.
+### Обучение (Kaggle Notebooks — рекомендуется, GPU T4)
+Открыть `notebooks/kaggle_train.ipynb`, выставить `CONFIG`, `TRAIN=True`, Accelerator
+**GPU T4** (НЕ P100 — текущий PyTorch не поддерживает Pascal/sm_60), Internet On,
+секреты `HF_TOKEN` + `WANDB_API_KEY`, Input → датасет соревнования. Чекпоинты пушатся
+на HF Hub (резюм после обрыва автоматический), веса пишутся в `/kaggle/temp` чтобы не
+раздувать output. Аналог для Colab — `notebooks/colab_train.ipynb`.
 
 ### Обучение (CLI, если есть GPU)
 ```bash
@@ -112,20 +129,28 @@ poetry run python model.py predict-file --dataset=./data/test.csv      # -> ./da
 ### Сабмит на Kaggle (это **code competition**)
 Сабмитится не файл, а ноутбук: Kaggle приватно перезапускает выбранную версию,
 подставляя скрытый тест, и забирает из Output файл **`submission.csv`**.
-Используется `notebooks/kaggle_submit.ipynb` (только инференс, грузит модель с HF Hub):
-1. Открыть его в Kaggle, Add Input → соревнование, Internet On, Secret `HF_TOKEN`.
-2. Выставить `RUN_NAME` (какую модель брать) и `NORMALIZE` (False для baseline, True для exp1+).
-3. Save & Run All → дождаться `submission.csv` в Output → **Submit**.
+Интернет при перезапуске **выключен**, поэтому `notebooks/kaggle_submit.ipynb` —
+самодостаточный (вшиты нормализация + MBR-chrF), модели берутся из подключённых
+Kaggle Dataset (готовятся `notebooks/kaggle_export_model.ipynb` из весов на HF Hub):
+1. Add Input → соревнование + датасет(ы) с моделью; Internet **Off**, GPU **T4**.
+2. Шаг 1 печатает пути моделей → впиши в `MODEL_DIRS`; `NORMALIZE=True` для exp1+.
+3. Save & Run All → `submission.csv` в Output → **Submit**.
 
 ## Конфигурация декодирования (финальная)
 
-*(заполнить после экспериментов)* — N кандидатов: `—`, beam: `—`, селектор: MBR по chrF,
-состав ансамбля: ByT5-base seed 13 + seed 42.
+- **Сабмит (по лимиту времени):** одна модель ByT5-base seed13, beam search `num_beams=8`,
+  `max_new_tokens=512`, нормализация входа включена.
+- **Лучшая офлайн-конфигурация:** ансамбль seed13 + seed42 — по 4 beam-кандидата
+  (`num_beams=4`, `num_return_sequences=4`) с каждой модели → пул из 8 → выбор консенсуса
+  через MBR по chrF (reference-free, `akkadian_nmt/decode.py::mbr_select`).
 
 ## Логи и трекинг
 
 - Все стадии пишут в `./data/log_file.log` (singleton-логгер `akkadian_nmt/logging_utils.py`).
-- Эксперименты: W&B, проект `akkadian-nmt` *(ссылка — добавить)*; веса — HF Hub *(ссылка — добавить)*.
+- Эксперименты: W&B, проект `akkadian-nmt`
+  (`https://wandb.ai/kmalahov703-tomsk-state-university/akkadian-nmt`).
+- Веса: HF Hub — `kirmala/akkadian-byt5-full-seed13`, `...-seed42`,
+  `...-byt5-norm-docs`, `...-byt5-baseline-docs-raw`.
 
 ## Ресурсы
 
