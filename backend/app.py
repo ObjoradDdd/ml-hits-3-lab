@@ -22,11 +22,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.close()
                 break
 
-            # inputs = tokenizer(text, return_tensors="pt")
-            # outputs = model.generate(**inputs)
-            # translation = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            inputs = tokenizer(text, return_tensors="pt")
+            outputs = model.generate(**inputs)
+            translation = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-            await websocket.send_text(str(len(text)))
+            await websocket.send_text(translation)
             await websocket.close()
             break
 
