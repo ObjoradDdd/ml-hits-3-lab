@@ -1,22 +1,16 @@
-# syntax=docker/dockerfile:1
+FROM python:3.11-slim
 
-FROM eclipse-temurin:17-jdk AS build
 WORKDIR /app
 
-COPY mvnw .
-COPY .mvn .mvn
-COPY pom.xml .
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN chmod +x mvnw
-RUN ./mvnw -q -DskipTests dependency:go-offline
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src src
-RUN ./mvnw -q -DskipTests package
-
-FROM eclipse-temurin:17-jre
-WORKDIR /app
-
-COPY --from=build /app/target/*.jar app.jar
+COPY . .
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+CMD ["python", "app.py"]
