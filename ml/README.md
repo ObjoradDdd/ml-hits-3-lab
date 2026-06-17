@@ -1,12 +1,6 @@
 # Akkadian → English NMT — ML part (HW3, Deep Past Initiative)
 
-**Автор ML-части:** Кирилл Малахов, группа `<номер группы>`
-(веб-сервис / стриминг / Docker — см. `backend/` и `frontend/`, делает одногруппник)
-
-Перевод древнеассирийских клинописных табличек (латинская транслитерация) на английский.
-Соревнование: [Kaggle — Deep Past Initiative: Machine Translation](https://www.kaggle.com/competitions/deep-past-initiative-machine-translation).
-
-## Ключевые инсайты (см. `notebooks/01_eda.ipynb`)
+**Автор ML-части:** Кирилл Малахов, группа `972401`
 
 1. **Тест испорчен детерминированным посимвольным шифром** (артефакт шрифта публикаций):
    `š→a`, `ṭ→m`, `ḫ→+`, `4→„`, `5→…`, `{}→()`. Шифр необратим, поэтому мы не чистим тест,
@@ -33,7 +27,7 @@ dev-метрики считаются на **испорченном** dev (`src_
 | 1 | + нормализация орфографии и test-style аугментация (docs, greedy) | 17.20 | 37.07 | 25.25 | — | `configs/exp1_norm.yaml` |
 | 2 | + sentence-chunk пары (полный корпус, seed13, greedy) | 17.66 | 37.71 | 25.81 | — | `configs/exp2_full_seed13.yaml` |
 | 3 | + beam search (seed13, beam=8) | 18.22 | 38.25 | **26.40** | 21.55 / 23.05 | **сабмичен** (public/private) |
-| 4 | + мини-ансамбль seed13+seed42, MBR-chrF (4+4 канд.) | **19.03** | **39.16** | **27.30** | — | лучший на dev; не сабмичен — см. ниже |
+| 4 | + мини-ансамбль seed13+seed42, MBR-chrF (4+4 канд.) | **19.03** | **39.16** | **27.30** | — | лучший на dev |
 
 Beam sweep (испорченный dev, 200 примеров):
 - exp1 (docs): greedy 25.25 → beam4 **25.64** → beam8 25.54
@@ -45,28 +39,21 @@ Beam sweep (испорченный dev, 200 примеров):
 +beam search (25.81 → 26.40). Ансамбль seed13+seed42 — строка 4.
 
 Ансамбль (MBR-chrF над пулом beam-кандидатов двух сидов) бьёт лучшую одиночную
-модель на dev: geo 26.40 → **27.30**. Однако это **code-competition без интернета**:
-скрытый тест велик, и прогон двух моделей × beam не укладывался в лимит времени
-перезапуска. Поэтому **сабмичена одиночная seed13** (beam), а ансамбль остаётся
-лучшей конфигурацией по dev/офлайн.
+модель на dev: geo 26.40 → **27.30**.
 
 **Финальные метрики:**
 - **Сабмит (ByT5-base seed13, beam):** Kaggle public **21.55** / private **23.05**.
 - dev (испорченный, n=200): лучшая одиночная geo **26.40**; ансамбль BLEU **19.03**,
   chrF++ **39.16**, geo **27.30**, COMET (`Unbabel/wmt22-comet-da`) **0.6331**.
 
-### Честный анализ (dev ↔ LB)
+![Лидерборд Kaggle](docs/leaderboard.png)
 
-dev-метрики (geo ~26–27) выше LB (~23), потому что dev мы портим **своим** 7-символьным
-шифром, выведенным из 4 видимых тестовых строк; реальная порча в скрытом тесте, видимо,
-разнообразнее, так что dev оптимистичен — LB здесь источник правды. Нормализация орфографии
-дала главный скачок (baseline LB **13.08** → сабмит **~23**), beam и ансамбль добавили
-сверху. Чтобы перейти порог 35.9, по опыту топ-решений нужен ByT5 **large/XL** и больше
-эпох (top-4 использовали именно их) — это упирается в бюджет бесплатного T4, поэтому
-зафиксировались на ByT5-base. Все обязательные техники ablation-отчёта при этом выполнены
-и измерены.
+Кривые обучения (run `byt5-full-seed13`): eval/loss, eval/geo_mean, eval/chrf++ и др.
 
-Скриншот лидерборда: `docs/leaderboard.png` *(добавить)*.
+![Кривые обучения W&B](docs/submitted.png)
+
+Полные графики и метрики — в W&B:
+[wandb.ai/kmalahov703-tomsk-state-university/akkadian-nmt](https://wandb.ai/kmalahov703-tomsk-state-university/akkadian-nmt).
 
 ## Данные и лицензии
 
@@ -138,7 +125,7 @@ Kaggle Dataset (готовятся `notebooks/kaggle_export_model.ipynb` из в
 
 ## Конфигурация декодирования (финальная)
 
-- **Сабмит (по лимиту времени):** одна модель ByT5-base seed13, beam search `num_beams=8`,
+- **Сабмит:** одна модель ByT5-base seed13, beam search `num_beams=8`,
   `max_new_tokens=512`, нормализация входа включена.
 - **Лучшая офлайн-конфигурация:** ансамбль seed13 + seed42 — по 4 beam-кандидата
   (`num_beams=4`, `num_return_sequences=4`) с каждой модели → пул из 8 → выбор консенсуса
@@ -152,9 +139,3 @@ Kaggle Dataset (готовятся `notebooks/kaggle_export_model.ipynb` из в
 - Веса: HF Hub — `kirmala/akkadian-byt5-full-seed13`, `...-seed42`,
   `...-byt5-norm-docs`, `...-byt5-baseline-docs-raw`.
 
-## Ресурсы
-
-- Gutherz et al., *Translating Akkadian to English with NMT*, PNAS Nexus 2023
-- Xue et al., *ByT5: Towards a token-free future*, 2021
-- Freitag et al., *MBR decoding*, 2022
-- sacreBLEU: BLEU `nrefs:1|case:mixed|eff:no|tok:13a|smooth:exp`, chrF++ (`word_order=2`)
