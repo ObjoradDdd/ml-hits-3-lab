@@ -1,0 +1,17 @@
+# Ensemble member B: identical recipe to exp2, different seed.
+model_name: google/byt5-base
+train_source: both
+eval_source: src_test_style
+origin_filter: null
+num_epochs: 5  # full corpus (~7.4k augmented pairs) -> fewer epochs fit in a 12h Kaggle session
+seed: 42
+output_dir: model/byt5-full-s42
+run_name: byt5-full-seed42
+push_to_hub: false
+
+# T4 session-safety: frequent saves, cheap mid-train eval
+eval_steps: 100
+save_steps: 100
+eval_max_samples: 64
+generation_max_len: 256
+eval_batch: 8

@@ -1,0 +1,34 @@
+[project]
+name = "akkadian-nmt"
+version = "0.1.0"
+description = "Akkadian (Old Assyrian) to English NMT — Kaggle Deep Past Initiative, HW3 ML part"
+authors = [{ name = "Kirill Malahov" }]
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "torch (>=2.4)",
+    # pinned exactly: checkpoint optimizer state is not portable across
+    # transformers versions (see train.py resume logic). Keep Colab and
+    # Kaggle on the same version so resume works without a weights-only restart.
+    "transformers (==5.10.1)",
+    "datasets (>=3.0)",
+    "accelerate (>=1.0)",
+    "sacrebleu (>=2.4)",
+    "pandas (>=2.2)",
+    "fire (>=0.7)",
+    "wandb (>=0.18)",
+    "pyyaml (>=6.0)",
+    "huggingface-hub (>=0.26)",
+]
+
+# NOTE: COMET (unbabel-comet) pins transformers<5.0, incompatible with the
+# 5.10.1 we train/serve with. It is auxiliary (not trained on Akkadian) and is
+# installed ad-hoc in a separate step right before scoring — see the eval cell
+# in notebooks/*_train.ipynb. Do not add it here or version solving will fail.
+
+[tool.poetry]
+packages = [{ include = "akkadian_nmt" }]
+
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
