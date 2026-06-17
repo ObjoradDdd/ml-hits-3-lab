@@ -19,7 +19,17 @@ def load_model(model_dir: str, device: str | None = None):
     from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-    tokenizer = AutoTokenizer.from_pretrained(model_dir)
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(model_dir)
+    except Exception as err:
+        # ByT5 tokenizer config saved by one transformers version can fail to
+        # load under another ('list' object has no attribute 'keys'). The
+        # tokenizer is the standard byte-level ByT5 one (never modified), so
+        # fall back to constructing it directly — no files / network needed.
+        from transformers import ByT5Tokenizer
+
+        log.warning("AutoTokenizer failed (%s); using stock ByT5Tokenizer", err)
+        tokenizer = ByT5Tokenizer()
     model = AutoModelForSeq2SeqLM.from_pretrained(model_dir).to(device).eval()
     log.info("loaded %s on %s", model_dir, device)
     return model, tokenizer
