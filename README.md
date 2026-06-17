@@ -77,8 +77,6 @@ docker compose down
 
 Для глубокого погружения в настройку, конфигурацию экспериментов (W&B, Hugging Face Hub) или запуск CLI-команд обучения перейдите в README соответствующих модулей:
 
-* [Инструкция по Backend](https://www.google.com/search?q=./backend/README.md)
-* [Инструкция по Frontend](https://www.google.com/search?q=./frontend/README.md)
-* [Инструкция по ML-части (Воспроизведение и сабмит)](https://www.google.com/search?q=./ml/README.md)
-
-```
+* [Инструкция по Backend](./backend/README.md)
+* [Инструкция по Frontend](./frontend/README.md)
+* [Инструкция по ML-части (Воспроизведение и сабмит)](./ml/README.md)
